@@ -37,39 +37,38 @@ public class Interface {
         while ((label = br.readLine()) != null) {
             label = label.toLowerCase();
             String line = br.readLine();
-            if (line == null)
-                break;
+            if (line == null) break;
 
             int type;
             String data;
 
-            // Determine type based on first character
+            // Determine type based on the first character of the line
             if (line.startsWith("-")) {
-                type = 3; // Sound file
+                type = 3;  // Sound file
                 data = line.substring(1).trim();
             } else if (line.startsWith("+")) {
-                type = 4; // Music file
+                type = 4;  // Music file
                 data = line.substring(1).trim();
             } else if (line.startsWith("*")) {
-                type = 5; // Voice file
+                type = 5;  // Voice file
                 data = line.substring(1).trim();
             } else if (line.startsWith("/")) {
-                type = 2; // Translation
+                type = 2;  // Translation
                 data = line.substring(1).trim();
             } else {
                 data = line.trim();
-                if (data.endsWith(".gif"))
-                    type = 7;
-                else if (data.endsWith(".jpg"))
-                    type = 6;
-                else if (data.endsWith(".html"))
-                    type = 8;
-                else
-                    type = 1;
+                if (data.endsWith(".gif")) {
+                    type = 7;  // Animated image
+                } else if (data.endsWith(".jpg")) {
+                    type = 6;  // Image
+                } else if (data.endsWith(".html")) {
+                    type = 8;  // Webpage
+                } else {
+                    type = 1;  // Regular dictionary entry
+                }
             }
 
             Record record = new Record(new Key(label, type), data);
-            // Duplicate exception
             try {
                 dictionary.put(record);
             } catch (DictionaryException e) {
@@ -77,6 +76,7 @@ public class Interface {
             }
         }
     }
+
 
     // Processes user commands
     private static void processCommand(String command, BSTDictionary dictionary) {
@@ -136,13 +136,22 @@ public class Interface {
     // Handles "define" command
     private static void handleDefine(StringTokenizer tokenizer, BSTDictionary dictionary) {
         String word = tokenizer.nextToken().toLowerCase();
+        // First try to get a regular definition (type 1)
         Record record = dictionary.get(new Key(word, 1));
         if (record != null) {
             System.out.println(record.getDataItem());
         } else {
-            System.out.println("The word " + word + " is not in the ordered dictionary.");
+            // If not found, try getting a translation (type 2)
+            record = dictionary.get(new Key(word, 2));
+            if (record != null) {
+                System.out.println(record.getDataItem());
+            } else {
+                System.out.println("The word " + word + " is not in the dictionary.");
+            }
         }
     }
+
+
 
     // Looks up translation of a word
     private static void handleTranslate(StringTokenizer tokenizer, BSTDictionary dictionary) {
@@ -158,11 +167,25 @@ public class Interface {
     // Plays sound file
     private static void handleSound(StringTokenizer tokenizer, BSTDictionary dictionary) {
         String word = tokenizer.nextToken().toLowerCase();
-        Record record = dictionary.get(new Key(word, 3));
+        Record record = dictionary.get(new Key(word, 3)); // Sound file type
         if (record != null) {
+            String soundFile = record.getDataItem();
+
+            // Check if it's a valid sound file path
+            if (soundFile.startsWith("-")) {
+                soundFile = soundFile.substring(1).trim();
+            }
+
+            // Check if the file exists
+            File file = new File(soundFile);
+            if (!file.exists()) {
+                System.out.println("The sound file " + soundFile + " does not exist.");
+                return;
+            }
+
             try {
                 SoundPlayer soundPlayer = new SoundPlayer();
-                soundPlayer.play(record.getDataItem());
+                soundPlayer.play(soundFile);  // Play the sound from the correct path
             } catch (MultimediaException e) {
                 System.out.println("Error playing sound file: " + e.getMessage());
             }
@@ -170,6 +193,7 @@ public class Interface {
             System.out.println("There is no sound file for " + word);
         }
     }
+
 
     // Plays music file
     private static void handlePlay(StringTokenizer tokenizer, BSTDictionary dictionary) {
@@ -276,9 +300,10 @@ public class Interface {
 
     // Lists all records that start with certain prefix
     private static void handleList(StringTokenizer tokenizer, BSTDictionary dictionary) {
-        String prefix = tokenizer.nextToken().toLowerCase();
+        String prefix = tokenizer.nextToken().toLowerCase();  // Ensure the prefix is converted to lowercase
         boolean found = false;
 
+        // Iterate over all records in the dictionary
         for (Record record : dictionary.list()) {
             if (record.getKey().getLabel().startsWith(prefix)) {
                 System.out.println(record.getKey().getLabel());
@@ -287,9 +312,10 @@ public class Interface {
         }
 
         if (!found) {
-            System.out.println("No label attributes in the ordered dictionary start with prefix " + prefix);
+            System.out.println("No label attributes in the dictionary start with prefix " + prefix);
         }
     }
+
 
     // Displays record wth smallest key
     private static void handleFirst(BSTDictionary dictionary) {
